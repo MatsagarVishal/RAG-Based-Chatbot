@@ -1,0 +1,27 @@
+# CPU-only PyTorch (Save ~4GB Space!)
+# Must come BEFORE sentence-transformers
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+
+fastapi
+uvicorn
+python-dotenv
+
+# Crawling
+playwright
+chromium
+
+# RAG & Embeddings
+sentence-transformers
+faiss-cpu
+
+# LangChain + Groq
+langchain
+langchain-community
+langchain-groq
+langchain-text-splitters
+gunicorn
+
+# AWS Integration
+boto3

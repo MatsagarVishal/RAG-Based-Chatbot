@@ -1,37 +1,26 @@
-# Multi-stage build for optimized image size
-FROM mcr.microsoft.com/playwright/python:v1.49.0-jammy as builder
-
-WORKDIR /app
-
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
-
-# Final stage
+# Single-stage build for resource-constrained environments (EC2 20GB)
 FROM mcr.microsoft.com/playwright/python:v1.49.0-jammy
 
 WORKDIR /app
 
-# Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
+# Install dependencies
+COPY requirements-docker.txt .
+# --no-cache-dir is crucial to save space
+RUN pip install --no-cache-dir -r requirements-docker.txt
+
+# Install only Chromium to save space
+RUN playwright install chromium --with-deps
 
 # Copy application code
 COPY . .
 
-# Install only Chromium browser (not all browsers)
-RUN playwright install chromium --with-deps
-
-# Create non-root user for security
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app && \
+# Set permissions for UID 1000 (exists in base image as pwuser)
+RUN chown -R 1000:1000 /app && \
     mkdir -p /tmp/rag_cache && \
-    chown -R appuser:appuser /tmp/rag_cache
+    chown -R 1000:1000 /tmp/rag_cache
 
-# Switch to non-root user
-USER appuser
-
-# Add local bin to PATH
-ENV PATH=/root/.local/bin:$PATH
+# Switch to non-root user (UID 1000)
+USER 1000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
@@ -41,6 +30,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 EXPOSE 8000
 
 # Start application
-# Use PORT env var with fallback to 8000
 CMD sh -c "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"
 
