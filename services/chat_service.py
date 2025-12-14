@@ -1,14 +1,19 @@
 import os
 from core.rag.qa_chain import RAGBot
+from utils.storage_factory import get_storage_backend
 
 
 def ask_question(kb_id: str, question: str):
-    kb_dir = f"storage/data/{kb_id}"
+    # Get storage backend (S3 or local)
+    storage = get_storage_backend()
+    
+    # Check if KB exists
+    if not storage.kb_exists(kb_id):
+        raise FileNotFoundError(f"Knowledge base '{kb_id}' not found")
 
-    if not os.path.exists(kb_dir):
-        raise FileNotFoundError("Knowledge base not found")
-
-    bot = RAGBot(kb_dir)
+    # Load KB and create RAG bot
+    bot = RAGBot(kb_id, storage)
     answer, sources = bot.ask(question)
 
     return answer, sources
+

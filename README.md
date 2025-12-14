@@ -219,12 +219,123 @@ GROQ_API_KEY=your_groq_api_key_here
 
 ---
 
-## 🚀 Deployment Ready
+## 🚀 Deployment
 
-This backend is ready for:
-- Dockerization
-- Render / Railway / AWS / Azure
-- Integration with React or any frontend
+This backend supports multiple deployment options:
+
+### 🏠 Local Development
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Install Playwright browsers
+playwright install chromium
+
+# Create .env file
+cp .env.example .env
+# Edit .env and add your GROQ_API_KEY
+
+# Run locally
+uvicorn api.main:app --reload
+```
+
+### 🐳 Docker (Local)
+
+```bash
+# Create .env file
+cp .env.example .env
+# Edit .env with your configuration
+
+# Build and run
+docker-compose up --build -d
+
+# View logs
+docker-compose logs -f
+
+# Access API
+curl http://localhost:8000/health
+```
+
+### ☁️ AWS EC2 Deployment (Recommended)
+
+**Quick Start:**
+
+1. **Create S3 Bucket** (for persistent storage):
+   ```bash
+   aws s3 mb s3://rag-chatbot-storage-<your-unique-id>
+   ```
+
+2. **Launch EC2 Instance** (t3.medium or larger recommended)
+
+3. **SSH into EC2 and run setup script**:
+   ```bash
+   curl -O https://raw.githubusercontent.com/your-repo/rag-chatbot/main/ec2-setup.sh
+   chmod +x ec2-setup.sh
+   ./ec2-setup.sh
+   ```
+
+4. **Configure environment** (`.env`):
+   ```env
+   GROQ_API_KEY=your_key_here
+   STORAGE_BACKEND=s3
+   S3_BUCKET_NAME=rag-chatbot-storage-<your-unique-id>
+   AWS_REGION=us-east-1
+   ```
+
+5. **Access your API**:
+   ```
+   http://<EC2_PUBLIC_IP>:8000
+   ```
+
+📚 **[Complete EC2 Deployment Guide](./docs/ec2-deployment.md)** - Detailed step-by-step instructions
+
+### 🌐 Other Cloud Platforms
+
+- **AWS App Runner**: Fully managed, auto-scaling (~$26-50/month)
+- **AWS ECS Fargate**: Production-grade containers (~$80-120/month)
+- **Render**: Easy deployment with free tier
+- **Railway**: Simple deployment with automatic HTTPS
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Create a `.env` file (use `.env.example` as template):
+
+```env
+# Required
+GROQ_API_KEY=your_groq_api_key_here
+
+# Storage Backend ('local' or 's3')
+STORAGE_BACKEND=local
+
+# Local Storage (only if STORAGE_BACKEND=local)
+STORAGE_ROOT=storage/data
+
+# AWS S3 Storage (only if STORAGE_BACKEND=s3)
+S3_BUCKET_NAME=rag-chatbot-storage
+AWS_REGION=us-east-1
+
+# Optional
+PORT=8000
+LOG_LEVEL=INFO
+```
+
+### Storage Backends
+
+**Local Storage** (Development):
+- Data stored in `storage/data/` directory
+- Fast, no external dependencies
+- Data lost if container is removed
+
+**S3 Storage** (Production):
+- Data persisted in AWS S3
+- Survives container restarts
+- Enables horizontal scaling
+- Automatic backups with versioning
 
 ---
 
@@ -234,7 +345,9 @@ This backend is ready for:
 - Backend system design
 - API-first development
 - LLM integration
-- Vector databases
+- Vector databases (FAISS)
+- Cloud-native deployment (AWS S3 integration)
+- Docker containerization
 - Clean, modular codebase
 
 ---
@@ -246,20 +359,7 @@ This backend is ready for:
 - Streaming responses
 - Hybrid search (BM25 + vectors)
 - UI dashboard (React)
+- Migration to managed vector DB (Pinecone, Weaviate)
 
 ---
 
-## 🐳 Docker Deployment
-
-1.  **Environment Variables**: Ensure your `.env` file exists and contains `GROQ_API_KEY`. The `docker-compose.yml` is configured to read this file automatically.
-
-2.  **Build and Run**:
-    ```bash
-    docker-compose up --build -d
-    ```
-
-3.  **Persistence**: The `storage/` directory is mounted to the container. Data crawled inside Docker will appear in your local `storage` folder and persist across restarts.
-
-4.  **Access**: The API will be available at `http://localhost:8000`.
-
----

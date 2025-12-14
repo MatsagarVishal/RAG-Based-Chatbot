@@ -1,18 +1,24 @@
 from sentence_transformers import SentenceTransformer
 from langchain_groq import ChatGroq
 
-from core.kb.vector_store import load_faiss_index
-
 
 class RAGBot:
-    def __init__(self, kb_dir: str):
-        self.kb_dir = kb_dir
+    def __init__(self, kb_id: str, storage):
+        """
+        Initialize RAG bot with storage backend
+        
+        Args:
+            kb_id: Knowledge base identifier
+            storage: Storage backend instance (S3Storage or LocalStorage)
+        """
+        self.kb_id = kb_id
+        self.storage = storage
 
         # Embedding model
         self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
-        # Load FAISS index + metadata
-        self.index, self.data = load_faiss_index(kb_dir)
+        # Load FAISS index + metadata from storage
+        self.index, self.data = storage.load_kb(kb_id)
 
         # LLM
         self.llm = ChatGroq(
@@ -71,3 +77,4 @@ Question:
         response = self.llm.invoke(prompt)
 
         return response.content.strip(), sources
+

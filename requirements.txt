@@ -16,3 +16,6 @@ langchain-community
 langchain-groq
 langchain-text-splitters
 gunicorn
+
+# AWS Integration
+boto3

@@ -10,22 +10,22 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from core.crawler.playwright_crawler import crawl_website_playwright as crawl_website
 from utils.url_hash import generate_kb_id
-from utils.kb_exists import kb_exists
+from utils.storage_factory import get_storage_backend
 
 
 def crawl_and_build_kb(url, force_refresh: bool = False):
     url_str = str(url)
     kb_id = generate_kb_id(url_str)
-    base_path = f"storage/data/{kb_id}"
+    
+    # Get storage backend (S3 or local)
+    storage = get_storage_backend()
 
     # 🔁 Force refresh
-    if force_refresh and os.path.exists(base_path):
-        shutil.rmtree(base_path)
-
-    os.makedirs(base_path, exist_ok=True)
+    if force_refresh and storage.kb_exists(kb_id):
+        storage.delete_kb(kb_id)
 
     # ♻️ Reuse KB
-    if not force_refresh and kb_exists(base_path):
+    if not force_refresh and storage.kb_exists(kb_id):
         return {
             "status": "exists",
             "kb_id": kb_id,
@@ -93,15 +93,9 @@ def crawl_and_build_kb(url, force_refresh: bool = False):
             "reason": "Crawled pages but no meaningful text was found."
         }
 
-    # 3️⃣ Persist FAISS + metadata
-    faiss.write_index(faiss_index, f"{base_path}/faiss.index")
-
-    with open(f"{base_path}/metadata.pkl", "wb") as f:
-        pickle.dump({"texts": texts, "metadatas": metadatas}, f)
-
-    # Optional: keep raw crawl for debugging
-    with open(f"{base_path}/raw_pages.json", "w", encoding="utf-8") as f:
-        json.dump(pages, f, indent=2, ensure_ascii=False)
+    # 3️⃣ Persist FAISS + metadata using storage backend
+    metadata_dict = {"texts": texts, "metadatas": metadatas}
+    storage.save_kb(kb_id, faiss_index, metadata_dict, raw_pages=pages)
 
     return {
         "status": "success",
@@ -119,3 +113,4 @@ def update_knowledge_base(url):
         url=url,
         force_refresh=True
     )
+
